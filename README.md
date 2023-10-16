@@ -5,3 +5,6 @@ The purpose of this sprint is to tackle the problem of color (k+e) corrections t
 Issue is that we are currently using outdated corrections for wrong cosmology. The problem is that these incosnistencies propagate into our IA amplitude so obtaining something meaningful is extremely important.
 
 (Will add mroe info, links, code, and relevant plots before the sprint)
+
+Bianca's paper
+http://ui.adsabs.harvard.edu/abs/1997A&AS..122..399P/abstract
