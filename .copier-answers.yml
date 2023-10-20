@@ -1,0 +1,17 @@
+# Changes here will be overwritten by Copier
+_commit: v1.4.3
+_src_path: gh:lincc-frameworks/python-project-template
+author_email: nikolina.sarcevic@gmail.com
+author_name: Nikolina Sarcevic
+create_example_module: false
+custom_install: true
+include_benchmarks: false
+include_docs: true
+include_notebooks: true
+mypy_type_checking: none
+package_name: k_e_corrections
+preferred_linter: black
+project_license: MIT
+project_name: k_e_corrections
+use_gitlfs: none
+use_isort: true
