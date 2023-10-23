@@ -1,16 +1,9 @@
 import astropy.units as u
-import numpy as np
 from astropy.cosmology import FlatLambdaCDM, z_at_value
-from scipy.interpolate import Akima1DInterpolator
+import numpy as np
+from scipy.interpolate import CubicSpline, Akima1DInterpolator
 
-# Import backport of importlib.resources for Python < 3.9
-try:
-    import importlib_resources as resources
-except ImportError:
-    from importlib import resources
-
-
-class KECorrections:
+class ColorCorrections:
     """
     A class for calculating color corrections for astronomical observations.
 
@@ -50,10 +43,9 @@ class KECorrections:
         # Load the redshift and k and e corrections from Poggianti tables
         # this particular dataset is for r-band E (red) galaxies
         # which is relevant for IA
-        with resources.files(__package__).joinpath("kcorr.dat").open("rb") as f:
-            self.z_k, self.kcorr, _, _, _ = np.loadtxt(f, unpack=True)
-        with resources.files(__package__).joinpath("ecorr.dat").open("rb") as f:
-            self.z_e, self.ecorr, _, _, _ = np.loadtxt(f, unpack=True)
+        self.z_k, self.kcorr, _, _, _ = np.loadtxt('data_input/kcorr.dat', unpack=True)
+        self.z_e, self.ecorr, _, _, _ = np.loadtxt('data_input/ecorr.dat', unpack=True)
+        
 
     def poggianti1997_time(self, redshift):
         """Poggianti, 1997, eq. 4.
@@ -74,17 +66,18 @@ class KECorrections:
         """
         q0 = 0.225  # used in Poggianti 1997
         H0 = 50 * u.km / u.s / u.Mpc  # used in Poggianti 1997
-        term1 = -4.0 * q0 / (H0 * np.power(1.0 - 2.0 * q0, 1.5))
+        term1 = -4. * q0 / (H0 * np.power(1. - 2. * q0, 1.5))
 
-        root_val = np.sqrt((1.0 + 2.0 * q0 * redshift) / (1.0 - 2.0 * q0))
+        root_val = np.sqrt((1. + 2. * q0 * redshift) / (1. - 2. * q0))
         term2 = root_val
-        term3 = 2.0 * (1.0 - (1.0 + 2.0 * q0 * redshift) / (1.0 - 2.0 * q0))
-        term4 = 0.25 * np.log(np.abs((1 + root_val) / (1.0 - root_val)))
+        term3 = 2.0 * (1. - (1. + 2. * q0 * redshift) / (1. - 2. * q0))
+        term4 = 0.25 * np.log(np.abs((1 + root_val) / (1. - root_val)))
 
         # Compute the final result for time
         time = term1 * (term2 / term3 + term4)
 
         return time
+        
 
     def poggianti1997_lookback_time(self, redshift):
         """Lookback time in the decelerating universe of Poggianti, 1997
@@ -101,6 +94,7 @@ class KECorrections:
             Lookback time, in Gyr
         """
         return self.poggianti1997_time(0) - self.poggianti1997_time(redshift)
+        
 
     def lookback_time_to_redshift(self, lb_time):
         """Get redshift (in the accelerating universe) from lookback time
@@ -119,11 +113,13 @@ class KECorrections:
         # to resolve the redshift from the lookback time.
         # It can be reimplemented manually with scipy.optimize.root_scalar
         return z_at_value(self.cosmology.lookback_time, lb_time)
+        
 
     def poggianti1997_to_accelerating_redshift(self, redshift):
         """Get redshift in the accelerating universe from redshift
         in the decelerating universe of Poggianti, 1997"""
         return self.lookback_time_to_redshift(self.poggianti1997_lookback_time(redshift))
+        
 
     def make_kcorr_spline(self):
         """Make a spline for k-correction
@@ -151,6 +147,7 @@ class KECorrections:
 
         # return CubicSpline(z, kcorr, bc_type='natural', extrapolate=False)
         return Akima1DInterpolator(z, kcorr)
+        
 
     def make_ecorr_spline(self, original_z=False):
         """Make a spline for e-corrections.
@@ -176,14 +173,15 @@ class KECorrections:
         ecorr = np.r_[0, ecorr]
         # return CubicSpline(z, ecorr, bc_type='natural', extrapolate=False)
         return Akima1DInterpolator(z, ecorr)
+        
 
     def get_color_corrections(self):
         """
         Calculate color corrections for a given redshift range.
-
+    
         This function calculates the k-corrections and e-corrections
         using precomputed splines for a given redshift range.
-
+    
         Returns:
         k_corrections (numpy.ndarray): Array of k-corrections.
         e_corrections (numpy.ndarray): Array of e-corrections.
@@ -191,9 +189,10 @@ class KECorrections:
         # Calculate the k-corrections using a precomputed spline
         kcorr_spline = self.make_kcorr_spline()
         k_corrections = kcorr_spline(self.redshift_range)
-
+    
         # Calculate the e-corrections using a precomputed spline
         ecorr_spline = self.make_ecorr_spline(original_z=False)
         e_corrections = ecorr_spline(self.redshift_range)
-
+    
         return k_corrections, e_corrections
+
